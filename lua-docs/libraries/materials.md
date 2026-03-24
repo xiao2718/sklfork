@@ -9,7 +9,8 @@ The **vmt** parameter must be valid
 
 Example:
 ```lua
-local mat = materials.CreateMaterial("test",[[
+local mat = materials.CreateMaterial("test",
+[[
 UnlitGeneric
 {
 	$basetexture "white"
