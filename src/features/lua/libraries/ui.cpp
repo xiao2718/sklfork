@@ -83,7 +83,6 @@ namespace LuaFuncs
 			ImGui::End();
 			return 1;
 		}
-
 		// local text = imgui.InputText("id")
 		// while true do _, text = imgui.InputText("id") end
 		int InputText(lua_State* L)

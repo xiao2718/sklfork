@@ -6,3 +6,6 @@ obj/
 
 # Emacs files
 *~
+*.tar.gz
+*.zip
+src/features/visuals/spyalarm/spy_alarm.cpp
