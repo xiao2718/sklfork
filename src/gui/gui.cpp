@@ -139,6 +139,7 @@ void DrawESPTab()
 			ImGui::Checkbox("Box", &Settings::ESP.box);
 			ImGui::Checkbox("Ignore Cloaked", &Settings::ESP.ignorecloaked);
 			ImGui::Checkbox("Buildings", &Settings::ESP.buildings);
+			ImGui::Checkbox("Dispensers", &Settings::ESP.dispensers);
 			ImGui::Checkbox("Weapon", &Settings::ESP.weapon);
 
 			{
@@ -208,6 +209,9 @@ void DrawMiscTab()
 
 	ImGui::Checkbox("Spectator List", &Settings::Misc.spectatorlist);
 	ImGui::Checkbox("Player List", &Settings::Misc.playerlist);
+	ImGui::Checkbox("Spy Alarm", &Settings::Misc.spy_alarm);
+	ImGui::SliderFloat("Spy Alarm Range", &Settings::Misc.spy_alarm_range, 200.0f, 5000.0f);
+	ImGui::Checkbox("Spy Alarm Sound", &Settings::Misc.spy_alarm_sound);
 	ImGui::Checkbox("sv_pure bypass", &Settings::Misc.sv_pure_bypass);
 	ImGui::Checkbox("Streamer Mode", &Settings::Misc.streamer_mode);
 	ImGui::Checkbox("Bhop", &Settings::Misc.bhop);
@@ -436,6 +440,7 @@ void DrawRadarTab()
 
 	ImGui::Separator();
 	ImGui::Checkbox("Players", &Settings::Radar.players);
+	ImGui::Checkbox("Enemies Only", &Settings::Radar.enemies_only);
 	ImGui::Checkbox("Projectiles", &Settings::Radar.projectiles);
 	//ImGui::Checkbox("Objective", &Settings::Radar.objective);
 	ImGui::Checkbox("Buildings", &Settings::Radar.buildings);

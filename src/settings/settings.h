@@ -130,6 +130,7 @@ namespace Settings
 		bool enabled = false;
 		bool ignorecloaked = false;
 		bool buildings = false;
+		bool dispensers = false;
 		bool name = false;
 		bool box = false;
 		int health = 0;
@@ -190,6 +191,9 @@ namespace Settings
 		float viewmodel_offset[3] = {0, 0, 0};
 		float viewmodel_interp = 0.0f;
 		int backtrack = 0;
+		bool spy_alarm = false;
+		float spy_alarm_range = 2000.0f;
+		bool spy_alarm_sound = false;
 
 		float thirdperson_offset[4] = {23.5, 11.5, 8.0f, 1.0f};
 
@@ -234,7 +238,8 @@ namespace Settings
 		int range = 3000;
 		int icon_size = 10;
 		bool enabled = false;
-		bool players = false;
+		bool players = true;
+		bool enemies_only = true;
 		bool buildings = false;
 		bool objective = false;
 		bool projectiles = false;
@@ -355,6 +360,9 @@ namespace Settings
 		CONFIG_BOOL("misc no recoil", Misc.norecoil),
 		CONFIG_INT("misc backtrack", Misc.backtrack),
 		CONFIG_BOOL("misc no engine sleep", Misc.no_engine_sleep),
+		CONFIG_BOOL("misc spy alarm", Misc.spy_alarm),
+		CONFIG_FLOAT("misc spy alarm range", Misc.spy_alarm_range),
+		CONFIG_BOOL("misc spy alarm sound", Misc.spy_alarm_sound),
 
 		//triggerbot
 		CONFIG_KEY("trigger key", Trigger.key),

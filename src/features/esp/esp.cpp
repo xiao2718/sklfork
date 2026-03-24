@@ -137,13 +137,26 @@ namespace ESP
 
 		for (const auto& entry : EntityList::GetEntities())
 		{
+			if (entry.ptr == EntityList::GetLocal())
+				continue;
+			
 			if (!ESP_Utils::IsValidEntity(pLocal, entry))
 				continue;
 
 			ESP_Data data{};
 			if (!GetData(entry, data))
 				continue;
-
+			ClientClass* pClass = entry.ptr->GetClientClass();
+			
+			if (entry.flags & EntityFlags::IsBuilding)
+			{
+				bool isDispenser = pClass != nullptr && strcmp(pClass->networkName, "CObjectDispenser") == 0;
+				if (isDispenser && !Settings::ESP.dispensers && !Settings::ESP.buildings)
+					continue;
+				if (!isDispenser && !Settings::ESP.buildings)
+					continue;
+			}
+			
 			CBaseEntity* ent = entry.ptr;
 
 			Color color = ESP_Utils::GetEntityColor(ent);
