@@ -7,5 +7,9 @@ obj/
 # Emacs files
 *~
 *.tar.gz
+<<<<<<< Updated upstream
 *.zip
 src/features/visuals/spyalarm/spy_alarm.cpp
+=======
+*.zip
+>>>>>>> Stashed changes
