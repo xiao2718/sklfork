@@ -188,6 +188,7 @@ namespace Settings
 		bool accept_item_drop = false;
 		bool playerlist = false;
 		bool norecoil = false;
+		bool no_push = false;
 		float viewmodel_offset[3] = {0, 0, 0};
 		float viewmodel_interp = 0.0f;
 		int backtrack = 0;
@@ -238,8 +239,8 @@ namespace Settings
 		int range = 3000;
 		int icon_size = 10;
 		bool enabled = false;
-		bool players = true;
-		bool enemies_only = true;
+		bool players = false;
+		bool enemies_only = false;
 		bool buildings = false;
 		bool objective = false;
 		bool projectiles = false;
@@ -305,107 +306,112 @@ CONFIG_FLOAT(name, var[3])
 namespace Settings
 {
 	extern bool menu_open;
-	inline SettingEntry m_entries[]
-	{
-		// aimbot
-		CONFIG_FLOAT("aimbot fov", Aimbot.fov),
-		CONFIG_BOOL("aimbot autoshot", Aimbot.autoshoot),
-		CONFIG_FLOAT("aimbot max sim time", Aimbot.max_sim_time),
-		CONFIG_BOOL("aimbot viewmodel aim", Aimbot.viewmodelaim),
-		CONFIG_BOOL("aimbot draw fov indicator", Aimbot.draw_fov_indicator),
-		CONFIG_BOOL("aimbot ignore cloaked", Aimbot.ignorecloaked),
-		CONFIG_BOOL("aimbot ignore ubered", Aimbot.ignoreubered),
-		CONFIG_BOOL("aimbot ignore hoovy", Aimbot.ignorehoovy),
-		CONFIG_BOOL("aimbot ignore bonked", Aimbot.ignorebonked),
-		CONFIG_INT("aimbot melee", Aimbot.melee),
-		CONFIG_BOOL("aimbot wait for charge", Aimbot.waitforcharge),
-		CONFIG_INT("aimbot mode", Aimbot.mode),
-		CONFIG_FLOAT("aimbot smoothness", Aimbot.smoothness),
-		CONFIG_INT("aimbot team mode", Aimbot.teamMode),
-		CONFIG_BOOL("aimbot hold minigun spin", Aimbot.hold_minigun_spin),
-		CONFIG_BOOL("aimbot indicator", Aimbot.indicator),
-		CONFIG_KEY("aimbot key", Aimbot.key),
-		CONFIG_INT("aimbot path", Aimbot.path),
-		CONFIG_INT("aimbot indicator", Aimbot.indicator),
+        inline SettingEntry m_entries[]{
+            // aimbot
+            CONFIG_FLOAT("aimbot fov", Aimbot.fov),
+            CONFIG_BOOL("aimbot autoshot", Aimbot.autoshoot),
+            CONFIG_FLOAT("aimbot max sim time", Aimbot.max_sim_time),
+            CONFIG_BOOL("aimbot viewmodel aim", Aimbot.viewmodelaim),
+            CONFIG_BOOL("aimbot draw fov indicator", Aimbot.draw_fov_indicator),
+            CONFIG_BOOL("aimbot ignore cloaked", Aimbot.ignorecloaked),
+            CONFIG_BOOL("aimbot ignore ubered", Aimbot.ignoreubered),
+            CONFIG_BOOL("aimbot ignore hoovy", Aimbot.ignorehoovy),
+            CONFIG_BOOL("aimbot ignore bonked", Aimbot.ignorebonked),
+            CONFIG_INT("aimbot melee", Aimbot.melee),
+            CONFIG_BOOL("aimbot wait for charge", Aimbot.waitforcharge),
+            CONFIG_INT("aimbot mode", Aimbot.mode),
+            CONFIG_FLOAT("aimbot smoothness", Aimbot.smoothness),
+            CONFIG_INT("aimbot team mode", Aimbot.teamMode),
+            CONFIG_BOOL("aimbot hold minigun spin", Aimbot.hold_minigun_spin),
+            CONFIG_BOOL("aimbot indicator", Aimbot.indicator),
+            CONFIG_KEY("aimbot key", Aimbot.key),
+            CONFIG_INT("aimbot path", Aimbot.path),
+            CONFIG_INT("aimbot indicator", Aimbot.indicator),
 
-		// esp
-		CONFIG_BOOL("esp enabled", ESP.enabled),
-		CONFIG_BOOL("esp ignore cloaked", ESP.ignorecloaked),
-		CONFIG_BOOL("esp buildings", ESP.buildings),
-		CONFIG_BOOL("esp name", ESP.name),
-		CONFIG_BOOL("esp box", ESP.box),
-		CONFIG_INT("esp health", ESP.health),
-		CONFIG_BOOL("esp chams", ESP.chams),
-		CONFIG_INT("esp stencil", ESP.stencil),
-		CONFIG_INT("esp blur", ESP.blur),
-		CONFIG_BOOL("esp weapon", ESP.weapon),
-		CONFIG_INT("esp conditions", ESP.fconditions),
-		CONFIG_INT("esp team", ESP.team_selection),
+            // esp
+            CONFIG_BOOL("esp enabled", ESP.enabled),
+            CONFIG_BOOL("esp ignore cloaked", ESP.ignorecloaked),
+            CONFIG_BOOL("esp buildings", ESP.buildings),
+            CONFIG_BOOL("esp name", ESP.name),
+            CONFIG_BOOL("esp box", ESP.box),
+            CONFIG_INT("esp health", ESP.health),
+            CONFIG_BOOL("esp chams", ESP.chams),
+            CONFIG_INT("esp stencil", ESP.stencil),
+            CONFIG_INT("esp blur", ESP.blur),
+            CONFIG_BOOL("esp weapon", ESP.weapon),
+            CONFIG_INT("esp conditions", ESP.fconditions),
+            CONFIG_INT("esp team", ESP.team_selection),
 
-		// misc
-		CONFIG_KEY("misc thirdperson key", Misc.thirdperson_key),
-		CONFIG_FLOAT3("misc thirdperson offset", Misc.thirdperson_offset),
-		CONFIG_BOOL("misc customfov enabled", Misc.customfov_enabled),
-		CONFIG_FLOAT("misc customfov", Misc.customfov),
-		CONFIG_BOOL("misc spectatorlist", Misc.spectatorlist),
-		CONFIG_BOOL("misc backpack_expander", Misc.backpack_expander),
-		CONFIG_BOOL("misc sv pure bypass", Misc.sv_pure_bypass),
-		CONFIG_BOOL("misc streamer mode", Misc.streamer_mode),
-		CONFIG_BOOL("misc bhop", Misc.bhop),
-		CONFIG_BOOL("misc autostrafe", Misc.autostrafe),
-		CONFIG_BOOL("misc accept item drop", Misc.accept_item_drop),
-		CONFIG_BOOL("misc playerlist", Misc.playerlist),
-		CONFIG_FLOAT3("misc viewmodel offset", Misc.viewmodel_offset),
-		CONFIG_FLOAT("misc viewmodel interp", Misc.viewmodel_interp),
-		CONFIG_BOOL("misc no recoil", Misc.norecoil),
-		CONFIG_INT("misc backtrack", Misc.backtrack),
-		CONFIG_BOOL("misc no engine sleep", Misc.no_engine_sleep),
-		CONFIG_BOOL("misc spy alarm", Misc.spy_alarm),
-		CONFIG_FLOAT("misc spy alarm range", Misc.spy_alarm_range),
-		CONFIG_BOOL("misc spy alarm sound", Misc.spy_alarm_sound),
+            // misc
+            CONFIG_KEY("misc thirdperson key", Misc.thirdperson_key),
+            CONFIG_FLOAT3("misc thirdperson offset", Misc.thirdperson_offset),
+            CONFIG_BOOL("misc customfov enabled", Misc.customfov_enabled),
+            CONFIG_FLOAT("misc customfov", Misc.customfov),
+            CONFIG_BOOL("misc spectatorlist", Misc.spectatorlist),
+            CONFIG_BOOL("misc backpack_expander", Misc.backpack_expander),
+            CONFIG_BOOL("misc sv pure bypass", Misc.sv_pure_bypass),
+            CONFIG_BOOL("misc streamer mode", Misc.streamer_mode),
+            CONFIG_BOOL("misc bhop", Misc.bhop),
+            CONFIG_BOOL("misc autostrafe", Misc.autostrafe),
+            CONFIG_BOOL("misc accept item drop", Misc.accept_item_drop),
+            CONFIG_BOOL("misc playerlist", Misc.playerlist),
+            CONFIG_FLOAT3("misc viewmodel offset", Misc.viewmodel_offset),
+            CONFIG_FLOAT("misc viewmodel interp", Misc.viewmodel_interp),
+            CONFIG_BOOL("misc no recoil", Misc.norecoil),
 
-		//triggerbot
-		CONFIG_KEY("trigger key", Trigger.key),
-		CONFIG_BOOL("trigger hitscan", Trigger.hitscan),
-		CONFIG_INT("trigger autobackstab", Trigger.autobackstab),
-		CONFIG_INT("trigger autoairblast", Trigger.autoairblast),
+            {"misc no push", SettingType ::BOOL,
+             [](std ::ofstream &f) { f << ((Misc.no_push) ? 1 : 0); },
+             [](const std ::string &v) { Misc.no_push = std ::stoi(v) != 0; },
+             []() { return std ::to_string(Misc.no_push); },
+             [](const std ::string &v) { Misc.no_push = std ::stoi(v) != 0; }},
+            CONFIG_INT("misc backtrack", Misc.backtrack),
+            CONFIG_BOOL("misc no engine sleep", Misc.no_engine_sleep),
+            CONFIG_BOOL("misc spy alarm", Misc.spy_alarm),
+            CONFIG_FLOAT("misc spy alarm range", Misc.spy_alarm_range),
+            CONFIG_BOOL("misc spy alarm sound", Misc.spy_alarm_sound),
 
-		// colors
-		CONFIG_FLOAT4("colors red team", Colors.red_team),
-		CONFIG_FLOAT4("colors blu team", Colors.blu_team),
-		CONFIG_FLOAT4("colors aimbot target", Colors.aimbot_target),
-		CONFIG_FLOAT4("colors weapon", Colors.weapon),
+            // triggerbot
+            CONFIG_KEY("trigger key", Trigger.key),
+            CONFIG_BOOL("trigger hitscan", Trigger.hitscan),
+            CONFIG_INT("trigger autobackstab", Trigger.autobackstab),
+            CONFIG_INT("trigger autoairblast", Trigger.autoairblast),
 
-		// antiaim
-		CONFIG_BOOL("antiaim enabled", AntiAim.enabled),
-		CONFIG_INT("antiaim pitch mode", AntiAim.pitch_mode),
-		CONFIG_INT("antiaim real yaw mode", AntiAim.real_yaw_mode),
-		CONFIG_INT("antiaim fake yaw mode", AntiAim.fake_yaw_mode),
-		CONFIG_FLOAT("antiaim spin speed", AntiAim.spin_speed),
+            // colors
+            CONFIG_FLOAT4("colors red team", Colors.red_team),
+            CONFIG_FLOAT4("colors blu team", Colors.blu_team),
+            CONFIG_FLOAT4("colors aimbot target", Colors.aimbot_target),
+            CONFIG_FLOAT4("colors weapon", Colors.weapon),
 
-		// warp
-		CONFIG_BOOL("warp enabled", AntiAim.warp_enabled),
-		CONFIG_INT("warp speed", AntiAim.warp_speed),
-		CONFIG_KEY("warp key", AntiAim.warp_key),
-		CONFIG_KEY("warp recharge key", AntiAim.warp_recharge_key),
-		CONFIG_KEY("doubletap key", AntiAim.warp_dt_key),
+            // antiaim
+            CONFIG_BOOL("antiaim enabled", AntiAim.enabled),
+            CONFIG_INT("antiaim pitch mode", AntiAim.pitch_mode),
+            CONFIG_INT("antiaim real yaw mode", AntiAim.real_yaw_mode),
+            CONFIG_INT("antiaim fake yaw mode", AntiAim.fake_yaw_mode),
+            CONFIG_FLOAT("antiaim spin speed", AntiAim.spin_speed),
 
-		// fakelag
-		CONFIG_BOOL("fakelag enabled", AntiAim.fakelag_enabled),
-		CONFIG_INT("fakelag ticks", AntiAim.fakelag_ticks),
+            // warp
+            CONFIG_BOOL("warp enabled", AntiAim.warp_enabled),
+            CONFIG_INT("warp speed", AntiAim.warp_speed),
+            CONFIG_KEY("warp key", AntiAim.warp_key),
+            CONFIG_KEY("warp recharge key", AntiAim.warp_recharge_key),
+            CONFIG_KEY("doubletap key", AntiAim.warp_dt_key),
 
-		// radar
-		CONFIG_BOOL("radar enabled", Radar.enabled),
-		CONFIG_INT("radar size", Radar.size),
-		CONFIG_INT("radar range", Radar.range),
-		CONFIG_BOOL("radar players", Radar.players),
-		CONFIG_BOOL("radar buildings", Radar.buildings),
-		CONFIG_BOOL("radar objective", Radar.objective),
-		CONFIG_BOOL("radar projectiles", Radar.projectiles),
-		CONFIG_INT("radar icon size", Radar.icon_size),
-	};
+            // fakelag
+            CONFIG_BOOL("fakelag enabled", AntiAim.fakelag_enabled),
+            CONFIG_INT("fakelag ticks", AntiAim.fakelag_ticks),
 
-	void Save(const std::string& fullPath);
+            // radar
+            CONFIG_BOOL("radar enabled", Radar.enabled),
+            CONFIG_INT("radar size", Radar.size),
+            CONFIG_INT("radar range", Radar.range),
+            CONFIG_BOOL("radar players", Radar.players),
+            CONFIG_BOOL("radar buildings", Radar.buildings),
+            CONFIG_BOOL("radar objective", Radar.objective),
+            CONFIG_BOOL("radar projectiles", Radar.projectiles),
+            CONFIG_INT("radar icon size", Radar.icon_size),
+        };
+
+        void Save(const std::string& fullPath);
 	void Load(const std::string& fullPath);
 
 	template<typename T>

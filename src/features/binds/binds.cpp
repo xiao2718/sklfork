@@ -181,44 +181,45 @@ const char* Binds::GetModeName(HotkeyMode mode)
 
 void Binds::DrawWindow(bool bMenuOpen)
 {
-	if (interfaces::Engine->IsTakingScreenshot())
-		return;
+	return;
+	//  if (interfaces::Engine->IsTakingScreenshot())
+	//  	return;
 
-	ImGui::SetNextWindowSizeConstraints(ImVec2{150.0f, 0.0f}, ImVec2(FLT_MAX, FLT_MAX));
+	// ImGui::SetNextWindowSizeConstraints(ImVec2{150.0f, 0.0f}, ImVec2(FLT_MAX, FLT_MAX));
 
-	int flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
-	if (!bMenuOpen)
-		flags |= ImGuiWindowFlags_NoMove;
+	// int flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
+	// if (!bMenuOpen)
+	// 	flags |= ImGuiWindowFlags_NoMove;
 
-	ImGui::Begin("Binds", nullptr, flags);
+	// ImGui::Begin("Binds", nullptr, flags);
 
-	for (const auto& bind : m_hotkeys)
-	{
-		if (bind->m_iType == InputType::None)
-			continue;
+	// for (const auto& bind : m_hotkeys)
+	// {
+	// 	if (bind->m_iType == InputType::None)
+	// 		continue;
 
-		const HotkeyMode& iMode = bind->m_iMode;
-		const std::string& strName = bind->m_strName;
+	// 	const HotkeyMode& iMode = bind->m_iMode;
+	// 	const std::string& strName = bind->m_strName;
 
-		const char* strModeName = GetModeName(iMode);
-		const char* strKeyName = GetKeyName(bind.get());
+	// 	const char* strModeName = GetModeName(iMode);
+	// 	const char* strKeyName = GetKeyName(bind.get());
 
-		if (bind->m_iMode != HotkeyMode::Off)
-		{
-			ImVec4 color = ImGui::ColorConvertU32ToFloat4(bind->m_bState
-			? IM_COL32(100, 255, 100, 255)
-			: IM_COL32(255, 255, 255, 255));
+	// 	if (bind->m_iMode != HotkeyMode::Off)
+	// 	{
+	// 		ImVec4 color = ImGui::ColorConvertU32ToFloat4(bind->m_bState
+	// 		? IM_COL32(100, 255, 100, 255)
+	// 		: IM_COL32(255, 255, 255, 255));
 	
-			// F4 - Aimbot Key - Toggle
-			ImGui::TextColored(color, "%s - %s [%s]", strKeyName, strName.c_str(), strModeName);
-		}
-		else
-		{
-			ImGui::TextDisabled("%s - %s [%s]", strKeyName, strName.c_str(), strModeName);
-		}
-	}
+	// 		// F4 - Aimbot Key - Toggle
+	// 		ImGui::TextColored(color, "%s - %s [%s]", strKeyName, strName.c_str(), strModeName);
+	// 	}
+	// 	else
+	// 	{
+	// 		ImGui::TextDisabled("%s - %s [%s]", strKeyName, strName.c_str(), strModeName);
+	// 	}
+	// }
 
-	ImGui::End();
+	// ImGui::End();
 }
 
 bool Binds::IsEnabled(const Hotkey* hk) const

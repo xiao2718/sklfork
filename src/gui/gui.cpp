@@ -221,6 +221,7 @@ void DrawMiscTab()
 
 	ImGui::Checkbox("No Recoil", &Settings::Misc.norecoil);
 	ImGui::Checkbox("No Engine Sleep", &Settings::Misc.no_engine_sleep);
+	ImGui::Checkbox("No Push", &Settings::Misc.no_push);
 
 	ImGui::Separator();
 
@@ -593,63 +594,62 @@ void DrawLogsTab()
 
 void GUI::RunSpectatorList()
 {
-	if (helper::engine::IsTakingScreenshot())
+	if (helper::engine::IsTakingScreenshot() || !Settings::Misc.spectatorlist)
 		return;
 
-	ImGui::SetNextWindowSizeConstraints(
-        	ImVec2(150.0f, 0.0f),
-        	ImVec2(FLT_MAX, FLT_MAX)
-    	);
+	ImGui::SetNextWindowSizeConstraints(ImVec2(150.0f, 0.0f), ImVec2(FLT_MAX, FLT_MAX));
 
 	int flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
 	if (!Settings::menu_open)
 		flags |= ImGuiWindowFlags_NoMove;
 
-	ImGui::Begin("Spectator List", nullptr, flags);
-
-	int maxclients = helper::engine::GetMaxClients();
-	if (!helper::engine::IsInMatch() || maxclients <= 1)
-		return ImGui::End();
-
-	CTFPlayer* pLocal = helper::engine::GetLocalPlayer();
-	if (pLocal == nullptr || !pLocal->IsAlive())
-		return ImGui::End();
-
-	int localTeam = pLocal->m_iTeamNum();
-	int localIndex = pLocal->GetIndex();
-
-	for (const auto& entry : EntityList::GetEntities())
+	if (ImGui::Begin("Spectator List", nullptr, flags))
 	{
-		if (!(entry.flags & EntityFlags::IsPlayer))
-			continue;
+		if (helper::engine::IsInMatch())
+		{
+			CTFPlayer* pLocal = helper::engine::GetLocalPlayer();
+			if (pLocal)
+			{
+				// Logik: Wenn wir leben, suchen wir Spectators für UNS.
+				// Wenn wir tot sind, suchen wir Spectators für das Ziel, dem WIR gerade zuschauen.
+				CTFPlayer* pObservedTarget = pLocal->IsAlive() ? pLocal : HandleAs<CTFPlayer*>(pLocal->m_hObserverTarget());
 
-		CTFPlayer* player = static_cast<CTFPlayer*>(entry.ptr);
-		if (player == nullptr)
-			continue;
+				if (pObservedTarget)
+				{
+					for (const auto& entry : EntityList::GetEntities())
+					{
+						if (!(entry.flags & EntityFlags::IsPlayer))
+							continue;
 
-		if (player->IsAlive() || player == pLocal)
-			continue;
+						CTFPlayer* player = static_cast<CTFPlayer*>(entry.ptr);
+						if (player == nullptr || player->IsAlive() || player == pLocal)
+							continue;
 
-		if (player->m_iTeamNum() != localTeam)
-			continue;
+						// Prüfen, ob der Spieler das gleiche Ziel anschaut wie wir (oder uns selbst)
+						CTFPlayer* m_hObserverTarget = HandleAs<CTFPlayer*>(player->m_hObserverTarget());
+						
+						if (m_hObserverTarget && m_hObserverTarget->GetIndex() == pObservedTarget->GetIndex())
+						{
+							int mode = player->m_iObserverMode();
+							
+							// Wir ignorieren den "Roaming"-Mode (freie Kamera), da dieser kein festes Ziel hat
+							if (mode != OBS_MODE_IN_EYE && mode != OBS_MODE_CHASE)
+								continue;
 
-		CTFPlayer* m_hObserverTarget = HandleAs<CTFPlayer*>(player->m_hObserverTarget());
-		if (!m_hObserverTarget || m_hObserverTarget->GetIndex() != localIndex)
-			continue;
-
-		player_info_t info;
-		if (!interfaces::Engine->GetPlayerInfo(player->GetIndex(), &info))
-			continue;
-
-		int m_iObserverMode = player->m_iObserverMode();
-		bool isfirstperson = m_iObserverMode == OBS_MODE_IN_EYE;
-
-		ImGui::TextColored(isfirstperson ? ImVec4(1.0, 0.5, 0.5, 1.0) : ImVec4(1.0, 1.0, 1.0, 1.0), "%s", player->GetName().c_str());
+							bool isFirstPerson = (mode == OBS_MODE_IN_EYE);
+							
+							// Farbe: Rot-Nuance für First-Person (gefährlicher), Weiß für Third-Person
+							ImVec4 color = isFirstPerson ? ImVec4(1.0f, 0.4f, 0.4f, 1.0f) : ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+							
+							ImGui::TextColored(color, "%s", player->GetName().c_str());
+						}
+					}
+				}
+			}
+		}
 	}
-
 	ImGui::End();
 }
-
 void GUI::RunPlayerList()
 {
 	if (interfaces::Engine->IsTakingScreenshot())

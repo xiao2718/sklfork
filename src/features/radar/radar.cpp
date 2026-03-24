@@ -25,8 +25,6 @@ void Radar::Run()
 	m_iRange = Settings::Radar.range;
 	m_flRadius = size * 0.5f;
 
-	// Shouldn't be possible without Lua
-	// but just in case a smart ass tries it anyway
 	if (size == 0)
 		return;
 
@@ -47,7 +45,6 @@ Vec2 Radar::WorldToRadar(const Vector& localPos, const Vector& enemyPos, float v
 {
 	Vec2 delta = {enemyPos.x - localPos.x, enemyPos.y - localPos.y};
 
-	// rotate by -yaw
 	float yaw = DEG2RAD(-viewAnglesYaw);
 	float cosYaw = std::cos(yaw);
 	float sinYaw = std::sin(yaw);
@@ -55,7 +52,6 @@ Vec2 Radar::WorldToRadar(const Vector& localPos, const Vector& enemyPos, float v
 	float rx = delta.x * cosYaw - delta.y * sinYaw;
 	float ry = delta.y * cosYaw + delta.x * sinYaw;
 
-	// scale to radar
 	float dist = std::sqrt(rx * rx + ry * ry);
 	if (dist > m_iRange)
 	{
@@ -80,15 +76,49 @@ int Radar::GetRange()
 	return m_iRange;
 }
 
+// Draw a directional arrow (triangle) at `pos` pointing from `center` toward `pos`.
+static void DrawSpyArrow(ImDrawList* draw, ImVec2 center, ImVec2 pos, float iconSize)
+{
+	float dx = pos.x - center.x;
+	float dy = pos.y - center.y;
+	float len = std::sqrt(dx * dx + dy * dy);
+	if (len < 0.0001f) return;
+
+	// Normalised direction from center to spy
+	float nx = dx / len;
+	float ny = dy / len;
+
+	// Perpendicular
+	float px = -ny;
+	float py =  nx;
+
+	float tipLen  = iconSize * 2.2f;
+	float baseLen = iconSize * 1.0f;
+	float baseHalf = iconSize * 0.9f;
+
+	ImVec2 tip   = { pos.x + nx * tipLen,  pos.y + ny * tipLen };
+	ImVec2 base1 = { pos.x + px * baseHalf - nx * baseLen, pos.y + py * baseHalf - ny * baseLen };
+	ImVec2 base2 = { pos.x - px * baseHalf - nx * baseLen, pos.y - py * baseHalf - ny * baseLen };
+
+	// Filled triangle
+	draw->AddTriangleFilled(tip, base1, base2, IM_COL32(255, 160, 0, 230));
+	// Outline for readability
+	draw->AddTriangle(tip, base1, base2, IM_COL32(0, 0, 0, 180), 1.2f);
+}
+
 void Radar::DrawContents()
 {
 	int size = Settings::Radar.size;
 	ImVec2 pos = ImGui::GetCursorScreenPos();
-	ImVec2 center = {pos.x + m_flRadius, pos.y + m_flRadius};
+	ImVec2 center = { pos.x + m_flRadius, pos.y + m_flRadius };
 	ImDrawList* draw = ImGui::GetWindowDrawList();
 
-	draw->AddLine({ center.x, pos.y }, { center.x, pos.y + size }, IM_COL32(255,255,255,40));
-	draw->AddLine({ pos.x, center.y }, { pos.x + size, center.y }, IM_COL32(255,255,255,40));
+	// Background circle
+	draw->AddCircle(center, m_flRadius, IM_COL32(30, 30, 30, 180), 64, 1.0f);
+
+	// Cross-hair lines
+	draw->AddLine({ center.x, pos.y },          { center.x, pos.y + size }, IM_COL32(255, 255, 255, 40));
+	draw->AddLine({ pos.x, center.y },          { pos.x + size, center.y }, IM_COL32(255, 255, 255, 40));
 
 	if (EntityList::GetPlayerResources() == nullptr)
 		return;
@@ -111,48 +141,68 @@ void Radar::DrawContents()
 		if (entry.ptr == EntityList::GetLocal())
 			continue;
 
-		if (entry.flags & EntityFlags::IsBuilding && !Settings::Radar.buildings)
-			continue;
+		// --- Buildings ---
+		if (entry.flags & EntityFlags::IsBuilding)
+		{
+			if (!Settings::Radar.buildings)
+				continue;
 
-		if (entry.flags & EntityFlags::IsPlayer && (!Settings::Radar.players || !static_cast<CTFPlayer*>(entry.ptr)->IsAlive()))
-			continue;
+			// enemies_only: skip friendly buildings
+			if (Settings::Radar.enemies_only && !(entry.flags & EntityFlags::IsEnemy))
+				continue;
+		}
 
-		if (entry.flags & EntityFlags::IsProjectile && !Settings::Radar.projectiles)
-			continue;
+		// --- Players ---
+		if (entry.flags & EntityFlags::IsPlayer)
+		{
+			if (!Settings::Radar.players)
+				continue;
+
+			CTFPlayer* pPlayer = static_cast<CTFPlayer*>(entry.ptr);
+			if (!pPlayer->IsAlive())
+				continue;
+
+			// enemies_only: skip teammates
+			if (Settings::Radar.enemies_only && !(entry.flags & EntityFlags::IsEnemy))
+				continue;
+		}
+
+		// --- Projectiles ---
+		if (entry.flags & EntityFlags::IsProjectile)
+		{
+			if (!Settings::Radar.projectiles)
+				continue;
+		}
 
 		Vec2 p = WorldToRadar(localPos, entry.ptr->GetAbsOrigin(), viewYaw);
 		Color color = ESP_Utils::GetEntityColor(entry.ptr);
 
-		draw->AddCircleFilled({ center.x + p.x, center.y - p.y }, iconSize, IM_COL32(color.r(), color.g(), color.b(), color.a()));
+		ImVec2 screenPos = { center.x + p.x, center.y - p.y };
 
-		/*if (entry.flags & (EntityFlags::IsPlayer | EntityFlags::IsBuilding))
+		// Detect enemy spy for special rendering
+		bool isEnemySpy = false;
+		if ((entry.flags & (EntityFlags::IsPlayer | EntityFlags::IsEnemy)) ==
+		    (EntityFlags::IsPlayer | EntityFlags::IsEnemy))
 		{
-			int health = 0;
-			int maxhealth = 0;
+			CTFPlayer* pPlayer = static_cast<CTFPlayer*>(entry.ptr);
+			if (pPlayer != nullptr && pPlayer->m_iClass() == TF_CLASS_SPY)
+				isEnemySpy = true;
+		}
 
-			if (entry.flags & EntityFlags::IsPlayer)
-			{
-				CTFPlayer* pTarget = static_cast<CTFPlayer*>(entry.ptr);
-				if (pTarget != nullptr)
-				{
-					health = pTarget->GetHealth();
-					maxhealth = EntityList::GetPlayerResources()->m_iMaxHealth(pTarget->GetIndex());
-				}
-			}
+		if (isEnemySpy && Settings::Misc.spy_alarm)
+		{
+			// Draw a faint line from the radar center toward the spy so it
+			// is visible even when the spy is far away (dot is on edge)
+			draw->AddLine(center, screenPos, IM_COL32(255, 140, 0, 90), 1.5f);
 
-			if (entry.flags & EntityFlags::IsBuilding)
-			{
-				CBaseObject* pTarget = static_cast<CBaseObject*>(entry.ptr);
-				if (pTarget != nullptr)
-				{
-					health = pTarget->m_iHealth();
-					maxhealth = pTarget->m_iMaxHealth();
-				}
-			}
-
-			if (health != 0 && maxhealth != 0)
-				DrawHealthbar(draw, ImVec2(center.x + p.x, center.y - p.y), health, maxhealth, iconSize);
-		}*/
+			// Draw the directional arrow at the spy's radar position
+			DrawSpyArrow(draw, center, screenPos, static_cast<float>(iconSize));
+		}
+		else
+		{
+			draw->AddCircleFilled(screenPos, static_cast<float>(iconSize),
+			                      IM_COL32(color.r(), color.g(), color.b(), color.a()));
+		}
 	}
 }
 
@@ -161,7 +211,9 @@ void Radar::DrawHealthbar(ImDrawList* draw, ImVec2 pos, int health, int maxhealt
 	int half = static_cast<int>(iconSize);
 	constexpr int barOffset = 3;
 
-	draw->AddRectFilled(ImVec2(pos.x - half, pos.y + barOffset), ImVec2(pos.x + iconSize, pos.y + (barOffset*2.0f)), IM_COL32(255, 255, 255, 255));
+	draw->AddRectFilled(ImVec2(pos.x - half, pos.y + barOffset),
+	                    ImVec2(pos.x + iconSize, pos.y + (barOffset * 2.0f)),
+	                    IM_COL32(255, 255, 255, 255));
 }
 
 void Radar::Init()
