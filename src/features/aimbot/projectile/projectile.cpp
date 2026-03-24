@@ -130,10 +130,13 @@ bool CAimbotProjectile::GetProjectileInfo(ProjectileInfo_t& pOut, CTFPlayer* pLo
 		case TF_WEAPON_ROCKETLAUNCHER:
 		case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT:
 		{
+			bool bIsOriginal = id == Soldier_m_TheOriginal;
 			pOut.hull.Set();
 			pOut.speed = pLocal->InCond(TF_COND_RUNE_PRECISION) ? 3000 : AttributeHookValue(1100, "mult_projectile_speed", pWeapon, nullptr, true);
 			pOut.offset.x = 23.5f;
-			pOut.offset.y = AttributeHookValue(0, "centerfire_projectile", pWeapon, nullptr, true) == 1 ? 0 : 12;
+			pOut.offset.y = (bIsOriginal || AttributeHookValue(0, "centerfire_projectile", pWeapon, nullptr, true) == 1) ? 0 : 12;
+
+
 			pOut.offset.z = bDucking ? 8 : -3;
 			pOut.damage_radius = id == TF_WEAPON_ROCKETLAUNCHER ? 146 : 44;
 			pOut.simple_trace = true;
@@ -272,6 +275,9 @@ bool CAimbotProjectile::GetProjectileInfo(ProjectileInfo_t& pOut, CTFPlayer* pLo
 		case TF_WEAPON_BAT_GIFTWRAP:
 		{
 			static ConVar* tf_scout_stunball_base_speed = interfaces::Cvar->FindVar("tf_scout_stunball_base_speed");
+			if (!tf_scout_stunball_base_speed)
+				return false;
+
 			pOut.speed = tf_scout_stunball_base_speed->GetFloat();
 			pOut.gravity = 1;
 			pOut.lifetime = flGravity;
@@ -372,6 +378,10 @@ void CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 	Reset();
 	
 	if (!Settings::Aimbot.key->IsEnabled())
+		return;
+	bool bVisualsEnabled = Settings::Aimbot.path || Settings::Aimbot.indicator;
+
+	if (!bVisualsEnabled && !Settings::Aimbot.key->IsActive())
 		return;
 
 	bool bVisualsEnabled = Settings::Aimbot.path || Settings::Aimbot.indicator;
@@ -574,7 +584,7 @@ void CAimbotProjectile::RunIndicator()
 		m_vecOldIndicatorPos = m_vecAimPos;
 	}
 
-	m_vecOldIndicatorPos = m_vecOldIndicatorPos.Lerp(m_vecAimPos, interfaces::GlobalVars->frametime * 10.0f);
+	m_vecOldIndicatorPos = m_vecOldIndicatorPos.Lerp(m_vecAimPos, interfaces::GlobalVars->frametime * 80.0f);
 
 	Vector screenPos;
 	if (helper::engine::WorldToScreen(m_vecOldIndicatorPos, screenPos))
