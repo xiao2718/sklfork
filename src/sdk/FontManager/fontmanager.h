@@ -14,6 +14,7 @@ namespace FontManager
 	int CreateFont(const std::string& id, const std::string& fontName, int height, int weight, int flags);
 	int GetFont(const std::string& id);
 	int SetFont(const std::string& id);
+	int SetFont(int id);
 	const std::string& GetCurrentFontID();
 	const std::unordered_map<std::string, unsigned long>& GetAllFonts();
 };

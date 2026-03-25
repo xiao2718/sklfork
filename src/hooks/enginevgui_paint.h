@@ -39,7 +39,7 @@ DECLARE_VTABLE_HOOK(VGuiPaint, void, (IEngineVGui* thisptr, PaintMode_t paint))
 		if (LuaHookManager::HasHooks("Draw"))
 			LuaHookManager::Call(Lua::m_luaState, "Draw", 0);
 
-		FontManager::SetFont("esp font");
+		FontManager::SetFont(ESP::GetFont());
 
 		CTFPlayer* pLocal = EntityList::GetLocal();
 		if (pLocal)

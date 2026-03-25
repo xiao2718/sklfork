@@ -29,4 +29,6 @@ namespace ESP
 
 	void Init();
 	void Run(CTFPlayer* pLocal);
+
+	int GetFont();
 };

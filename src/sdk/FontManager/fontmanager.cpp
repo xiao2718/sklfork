@@ -42,6 +42,21 @@ int FontManager::SetFont(const std::string& id)
 	return true;
 }
 
+int FontManager::SetFont(int id)
+{
+	for (auto it = m_Fonts.begin(); it != m_Fonts.end(); it++)
+	{
+		if (it->second != id)
+			continue;
+
+		m_currentFontID = it->first;
+		interfaces::Surface->DrawSetTextFont(it->second);
+		return true;
+	}
+
+	return false;
+}
+
 const std::string& FontManager::GetCurrentFontID()
 {
 	return m_currentFontID;

@@ -30,7 +30,10 @@ namespace Warp
 
 	void RunCreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 	{
-		Warp::m_iDesiredState = WarpState::WAITING;
+		if (!Settings::AntiAim.warp_key->IsActive()
+		&& !Settings::AntiAim.warp_dt_key->IsActive()
+		&& !Settings::AntiAim.warp_recharge_key->IsActive())
+			Warp::m_iDesiredState = WarpState::WAITING;
 
 		if (!Settings::AntiAim.warp_key->IsEnabled())
 			return;
@@ -41,21 +44,31 @@ namespace Warp
 		if (interfaces::EngineVGui->IsGameUIVisible() || interfaces::EngineVGui->IsConsoleVisible())
 			return;
 
-		// this shit does not work
-		// honestly im debating whether I should make a
-		// state machine just for this
-		if (m_bDoubleTap)
+		// this is some shitty ass work
+		// and it doesn't work right either
+		if (m_iDesiredState == WarpState::DT_MOVING)
 		{
 			const Vector vecVelocity = pLocal->GetVelocity();
-    
+			float flSpeed = vecVelocity.Length2D();
+
+			if (flSpeed <= 20.0f)
+			{
+				m_iDesiredState = WarpState::DT;
+				return;
+			}
+
 			Vector vecForward, vecRight;
 			Math::AngleVectors(pCmd->viewangles, &vecForward, &vecRight);
-			
+
 			const float forwardVel = vecVelocity.Dot(vecForward);
 			const float sideVel = vecVelocity.Dot(vecRight);
-			
-			pCmd->forwardmove = -forwardVel * 450.0f;
-			pCmd->sidemove = -sideVel * 450.0f;
+
+			// why ts looks like the user just stops pressing WASD?
+			// just fucking kill me already
+			pCmd->forwardmove = -forwardVel;
+			pCmd->sidemove = -sideVel;
+			pCmd->buttons &= ~IN_ATTACK;
+			return;
 		}
 
 		if (Settings::AntiAim.warp_dt_key->IsActive() && Warp::m_iStoredTicks >= Warp::GetMaxTicks())
@@ -65,8 +78,17 @@ namespace Warp
 
 			if (helper::localplayer::IsAttacking(pLocal, pWeapon, pCmd))
 			{
-				Warp::m_iDesiredState = WarpState::DT;
-				return;
+				if (pLocal->GetVelocity().Length2D() > 0.0f)
+				{
+					m_iDesiredState = WarpState::DT_MOVING;
+					pCmd->buttons &= ~IN_ATTACK;
+					return;
+				}
+				else
+				{
+					m_iDesiredState = WarpState::DT;
+					return;
+				}
 			}
 		}
 
@@ -98,11 +120,11 @@ namespace Warp
 		if (m_iStoredTicks > 0)
 			draw->AddRectFilled(min, max, IM_COL32(0, 119, 200, 255), 2.0f);
 
-		char s_text[64];
-		sprintf(s_text, "%i/%i", Warp::m_iStoredTicks, GetMaxTicks());
-		ImVec2 textSize = ImGui::CalcTextSize(s_text);
+		char chrText[12];
+		sprintf(chrText, "%i/%i", Warp::m_iStoredTicks, GetMaxTicks());
+		ImVec2 textSize = ImGui::CalcTextSize(chrText);
 
-		draw->AddText(ImVec2(pos.x + width/2.0f - textSize.x/2.0f, pos.y + height/2.0f - textSize.y/2.0f), IM_COL32(255, 255, 255, 255), s_text);
+		draw->AddText(ImVec2(pos.x + width/2.0f - textSize.x/2.0f, pos.y + height/2.0f - textSize.y/2.0f), IM_COL32(255, 255, 255, 255), chrText);
 	}
 
 	void RunWindow()

@@ -153,6 +153,10 @@ void DrawESPTab()
 			}
 		}
 		ImGui::EndDisabled();
+		{
+			constexpr const char* items[]{"TF2", "Arial"};
+			ImGui::Combo("Font", &Settings::ESP.font, items, 2);
+		}
 
 		ImGui::TableNextColumn();
 

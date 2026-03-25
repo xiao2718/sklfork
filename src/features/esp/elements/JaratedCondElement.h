@@ -38,6 +38,6 @@ public:
 
 	Color GetColor(CBaseEntity* pEnt, const ESP_Data &data) const override
 	{
-		return Color{255, 255, 255, 255};
+		return Color{255, 200, 0, 255};
 	}
 };

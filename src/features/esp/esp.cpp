@@ -20,7 +20,10 @@ namespace ESP
 
 	void Init()
 	{
-		FontManager::CreateFont("esp font", "Arial", 16, 400, EFONTFLAG_CUSTOM | EFONTFLAG_ANTIALIAS);
+		constexpr int iFONT_FLAGS = EFONTFLAG_CUSTOM | EFONTFLAG_ANTIALIAS;
+
+		FontManager::CreateFont("esp font tf2", "TF2 BUILD", 16, 400, iFONT_FLAGS);
+		FontManager::CreateFont("esp font arial", "Arial", 16, 400, iFONT_FLAGS);
 
 		m_builtinElements.reserve(6);
 
@@ -131,9 +134,9 @@ namespace ESP
 		if (interfaces::Engine->IsTakingScreenshot())
 			return;
 
-		FontManager::SetFont("esp font");
-
 		constexpr int iGAP = 2;
+
+		FontManager::SetFont(GetFont());
 
 		for (const auto& entry : EntityList::GetEntities())
 		{
@@ -245,5 +248,17 @@ namespace ESP
                 case ESPTeamSelectionMode::BOTH: return "Both";
 		default: return "Invalid";
                 }
+        }
+
+	int GetFont()
+	{
+		switch(static_cast<ESPFont>(Settings::ESP.font))
+		{
+		case ESPFont::TF2BUILD: return FontManager::GetFont("esp font tf2");
+		case ESPFont::ARIAL: return FontManager::GetFont("esp font arial");
+		default: break;
+                }
+
+		return FontManager::GetFont("esp font tf2");
         }
 };

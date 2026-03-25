@@ -97,6 +97,14 @@ enum class AimbotIndicatorStyle
 	TRIANGLE,
 };
 
+enum class ESPFont
+{
+	INVALID = -1,
+	TF2BUILD,
+	ARIAL,
+	COUNT,
+};
+
 namespace Settings
 {
 	struct SettingsAntiAim
@@ -138,6 +146,7 @@ namespace Settings
 		bool weapon = false;
 		int team_selection = 0;
 		int fconditions = 0;
+		int font = 0;
 	};
 
 	extern SettingsESP ESP;
@@ -328,19 +337,20 @@ namespace Settings
             CONFIG_INT("aimbot path", Aimbot.path),
             CONFIG_INT("aimbot indicator", Aimbot.indicator),
 
-            // esp
-            CONFIG_BOOL("esp enabled", ESP.enabled),
-            CONFIG_BOOL("esp ignore cloaked", ESP.ignorecloaked),
-            CONFIG_BOOL("esp buildings", ESP.buildings),
-            CONFIG_BOOL("esp name", ESP.name),
-            CONFIG_BOOL("esp box", ESP.box),
-            CONFIG_INT("esp health", ESP.health),
-            CONFIG_BOOL("esp chams", ESP.chams),
-            CONFIG_INT("esp stencil", ESP.stencil),
-            CONFIG_INT("esp blur", ESP.blur),
-            CONFIG_BOOL("esp weapon", ESP.weapon),
-            CONFIG_INT("esp conditions", ESP.fconditions),
-            CONFIG_INT("esp team", ESP.team_selection),
+		// esp
+		CONFIG_BOOL("esp enabled", ESP.enabled),
+		CONFIG_BOOL("esp ignore cloaked", ESP.ignorecloaked),
+		CONFIG_BOOL("esp buildings", ESP.buildings),
+		CONFIG_BOOL("esp name", ESP.name),
+		CONFIG_BOOL("esp box", ESP.box),
+		CONFIG_INT("esp health", ESP.health),
+		CONFIG_BOOL("esp chams", ESP.chams),
+		CONFIG_INT("esp stencil", ESP.stencil),
+		CONFIG_INT("esp blur", ESP.blur),
+		CONFIG_BOOL("esp weapon", ESP.weapon),
+		CONFIG_INT("esp conditions", ESP.fconditions),
+		CONFIG_INT("esp team", ESP.team_selection),
+		CONFIG_INT("esp font", ESP.font),
 
             // misc
             CONFIG_KEY("misc thirdperson key", Misc.thirdperson_key),

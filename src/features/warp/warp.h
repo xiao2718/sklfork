@@ -6,6 +6,7 @@ enum class WarpState
 	WAITING = 0,
 	RUNNING,
 	RECHARGING,
+	DT_MOVING,
 	DT
 };
 
