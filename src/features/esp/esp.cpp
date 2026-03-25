@@ -149,11 +149,9 @@ namespace ESP
 			ESP_Data data{};
 			if (!GetData(entry, data))
 				continue;
-			ClientClass* pClass = entry.ptr->GetClientClass();
-			
 			if (entry.flags & EntityFlags::IsBuilding)
 			{
-				bool isDispenser = pClass != nullptr && strcmp(pClass->networkName, "CObjectDispenser") == 0;
+				bool isDispenser = entry.ptr->GetClassID() == ETFClassID::CObjectDispenser;
 				if (isDispenser && !Settings::ESP.dispensers && !Settings::ESP.buildings)
 					continue;
 				if (!isDispenser && !Settings::ESP.buildings)

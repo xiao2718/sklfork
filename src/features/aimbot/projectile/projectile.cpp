@@ -383,12 +383,7 @@ void CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 
 	if (!bVisualsEnabled && !Settings::Aimbot.key->IsActive())
 		return;
-
-	bool bVisualsEnabled = Settings::Aimbot.path || Settings::Aimbot.indicator;
-
-	if (!bVisualsEnabled && !Settings::Aimbot.key->IsActive())
-		return;
-
+	
 	static ConVar* sv_gravity = interfaces::Cvar->FindVar("sv_gravity");
 	if (sv_gravity == nullptr)
 		return Logs::Error("[CAimbotProjectile::RunMain] sv_gravity is null!");
