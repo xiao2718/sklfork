@@ -614,8 +614,6 @@ void GUI::RunSpectatorList()
 			CTFPlayer* pLocal = helper::engine::GetLocalPlayer();
 			if (pLocal)
 			{
-				// Logik: Wenn wir leben, suchen wir Spectators für UNS.
-				// Wenn wir tot sind, suchen wir Spectators für das Ziel, dem WIR gerade zuschauen.
 				CTFPlayer* pObservedTarget = pLocal->IsAlive() ? pLocal : HandleAs<CTFPlayer*>(pLocal->m_hObserverTarget());
 
 				if (pObservedTarget)
@@ -629,20 +627,17 @@ void GUI::RunSpectatorList()
 						if (player == nullptr || player->IsAlive() || player == pLocal)
 							continue;
 
-						// Prüfen, ob der Spieler das gleiche Ziel anschaut wie wir (oder uns selbst)
 						CTFPlayer* m_hObserverTarget = HandleAs<CTFPlayer*>(player->m_hObserverTarget());
 						
 						if (m_hObserverTarget && m_hObserverTarget->GetIndex() == pObservedTarget->GetIndex())
 						{
 							int mode = player->m_iObserverMode();
 							
-							// Wir ignorieren den "Roaming"-Mode (freie Kamera), da dieser kein festes Ziel hat
 							if (mode != OBS_MODE_IN_EYE && mode != OBS_MODE_CHASE)
 								continue;
 
 							bool isFirstPerson = (mode == OBS_MODE_IN_EYE);
 							
-							// Farbe: Rot-Nuance für First-Person (gefährlicher), Weiß für Third-Person
 							ImVec4 color = isFirstPerson ? ImVec4(1.0f, 0.4f, 0.4f, 1.0f) : ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 							
 							ImGui::TextColored(color, "%s", player->GetName().c_str());

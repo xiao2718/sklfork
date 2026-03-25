@@ -24,7 +24,7 @@ namespace AimbotHitscan
 				if (!pLocal->InCond(TF_COND_ZOOMED))
 					return HitscanOffset::CHEST;
 
-				if (static_cast<CTFSniperRifle*>(pWeapon)->m_flChargedDamage() < 50.0f)
+				if (pWeapon->m_iItemDefinitionIndex() == Sniper_m_TheSydneySleeper)
 					return HitscanOffset::CHEST;
 
 				return HitscanOffset::HEAD;
@@ -195,8 +195,15 @@ namespace AimbotHitscan
 			{
 				if (mode == AimbotMode::ASSISTANCE)
 				{
-					if (pCmd->mousedx == 0 && pCmd->mousedy == 0)
+					// Sniper only gets assistance while scoped
+					if (bIsSniperRifle && !bIsZoomed)
 						break;
+
+					if (pCmd->mousedx == 0 && pCmd->mousedy == 0)
+					{
+						if (!bIsZoomed)
+							break;
+					}
 				}
 
 				auto target = targets.front();
