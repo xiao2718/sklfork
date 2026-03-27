@@ -17,7 +17,7 @@
 
 #include "../features/lua/hookmgr.h"
 #include "../features/lua/api.h"
-
+#include "../features/visuals/spyalarm/spyalarm.h"
 #include "../core/core.h"
 
 DECLARE_VTABLE_HOOK(VGuiPaint, void, (IEngineVGui* thisptr, PaintMode_t paint))

@@ -6,7 +6,6 @@
 #include "../../../settings/settings.h"
 #include "../../entitylist/entitylist.h"
 #include "../../../sdk/defs.h"
-#include <cmath>
 #include <string>
 
 namespace Misc
@@ -37,7 +36,7 @@ namespace Misc
 		}
 	}
 
-	// Draws a pulsing on-screen alarm when an enemy spy is within spy_alarm_range.
+	// Draws an on-screen alarm when an enemy spy is within spy_alarm_range.
 	// Must be called inside Surface->StartDrawing() / FinishDrawing().
 	inline void DrawSpyAlarm(CTFPlayer* pLocal)
 	{
@@ -79,27 +78,28 @@ namespace Misc
 
 		// --- Visuals ---
 		
-		// Pulse alpha between 80 and 255 using an 8 Hz sine wave frequency
-		float pulse = (sinf(interfaces::GlobalVars->curtime * 8.0f) + 1.0f) * 0.5f;
-		int alpha = static_cast<int>(80 + pulse * 175);
-
-		Color warningColor = { 255, 50, 50, alpha };
+		// Fixed colors (no pulse)
+		Color warningColor = { 255, 50, 50, 255 };
 
 		int sw, sh;
 		interfaces::Engine->GetScreenSize(sw, sh);
 
+		// Fetch the active ESP font
+		auto font = ESP::GetFont(); 
+		
 		// Draw Text
-		FontManager::SetFont("esp font");
 		const std::string msg = "!!! SPY NEARBY !!!";
 		int textw = 0, texth = 0;
-		helper::draw::GetTextSize(msg, textw, texth);
+		
+		// Pass the font to the helpers to properly calculate and draw the text
+		helper::draw::GetTextSize(font, msg, textw, texth);
 
 		int tx = (sw - textw) / 2;
 		int ty = static_cast<int>(sh * 0.20f);
-		helper::draw::TextShadow(tx, ty, warningColor, msg);
+		helper::draw::TextShadow(font, tx, ty, warningColor, msg);
 
-		// Draw Flashing Screen Border
-		Color borderColor = { 255, 0, 0, static_cast<int>(pulse * 120) };
+		// Draw Screen Border
+		Color borderColor = { 255, 0, 0, 120 }; // Fixed alpha 
 		constexpr int borderThickness = 4;
 
 		interfaces::Surface->DrawSetColor(borderColor);
@@ -113,8 +113,9 @@ namespace Misc
 		if (Settings::Misc.spy_alarm_sound)
 		{
 			static float lastSoundTime = 0.0f;
+			
 			// Play sound every 1.5 seconds if a spy is still nearby
-			if (interfaces::GlobalVars->curtime - lastSoundTime > 1.5f)
+			if (interfaces::GlobalVars->curtime - lastSoundTime > 1.5f || interfaces::GlobalVars->curtime < lastSoundTime)
 			{
 				interfaces::Surface->PlaySound("ui/spy_high_common.wav"); 
 				lastSoundTime = interfaces::GlobalVars->curtime;
