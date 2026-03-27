@@ -37,7 +37,6 @@ namespace Misc
 	}
 
 	// Draws an on-screen alarm when an enemy spy is within spy_alarm_range.
-	// Must be called inside Surface->StartDrawing() / FinishDrawing().
 	inline void DrawSpyAlarm(CTFPlayer* pLocal)
 	{
 		if (!Settings::Misc.spy_alarm || !interfaces::GlobalVars || !interfaces::Engine || !interfaces::Surface)
@@ -84,19 +83,16 @@ namespace Misc
 		int sw, sh;
 		interfaces::Engine->GetScreenSize(sw, sh);
 
-		// Fetch the active ESP font
-		auto font = ESP::GetFont(); 
-		
 		// Draw Text
 		const std::string msg = "!!! SPY NEARBY !!!";
 		int textw = 0, texth = 0;
 		
-		// Pass the font to the helpers to properly calculate and draw the text
-		helper::draw::GetTextSize(font, msg, textw, texth);
+		// Note: No font arg passed here because FontManager::SetFont handles it in the hook!
+		helper::draw::GetTextSize(msg, textw, texth);
 
 		int tx = (sw - textw) / 2;
 		int ty = static_cast<int>(sh * 0.20f);
-		helper::draw::TextShadow(font, tx, ty, warningColor, msg);
+		helper::draw::TextShadow(tx, ty, warningColor, msg);
 
 		// Draw Screen Border
 		Color borderColor = { 255, 0, 0, 120 }; // Fixed alpha 
@@ -115,6 +111,7 @@ namespace Misc
 			static float lastSoundTime = 0.0f;
 			
 			// Play sound every 1.5 seconds if a spy is still nearby
+			// Also checks if curtime < lastSoundTime to fix the sound breaking on server changes
 			if (interfaces::GlobalVars->curtime - lastSoundTime > 1.5f || interfaces::GlobalVars->curtime < lastSoundTime)
 			{
 				interfaces::Surface->PlaySound("ui/spy_high_common.wav"); 
