@@ -49,16 +49,16 @@ DECLARE_VTABLE_HOOK(VGuiPaint, void, (IEngineVGui* thisptr, PaintMode_t paint))
 			Aimbot::RunPaint();
 			
 			// --- SPY ALARM CALLED HERE ---
-			Misc::DrawSpyAlarm(pLocal); 
+			// Misc::DrawSpyAlarm(pLocal); 
 		}
 
 		// compile time
-		if (Settings::menu_open)
-		{
-			Color color = {255, 255, 255, 255};
-			helper::draw::TextShadow(10, 10, color, "Skill Issue");
-			helper::draw::TextShadow(10, 30, color, "Build date: " __DATE__ " " __TIME__);
-		}
+		// if (Settings::menu_open)
+		// {
+		// 	Color color = {255, 255, 255, 255};
+		// 	helper::draw::TextShadow(10, 10, color, "Skill Issue");
+		// 	helper::draw::TextShadow(10, 30, color, "Build date: " __DATE__ " " __TIME__);
+		// }
 
 		interfaces::Surface->FinishDrawing();
 	}
