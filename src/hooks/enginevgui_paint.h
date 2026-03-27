@@ -48,8 +48,8 @@ DECLARE_VTABLE_HOOK(VGuiPaint, void, (IEngineVGui* thisptr, PaintMode_t paint))
 			ESP::Run(pLocal);
 			Aimbot::RunPaint();
 			
-			// --- SPY ALARM CALLED HERE ---
-			// Misc::DrawSpyAlarm(pLocal); 
+			// --- possible cause for blackscreen ---
+			Misc::DrawSpyAlarm(pLocal);
 		}
 
 		// compile time

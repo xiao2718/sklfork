@@ -12,29 +12,29 @@ namespace Misc
 {
 	// Runs ConVar-based misc features (no push, no engine sleep).
 	// Call every tick from Post_CreateMove.
-	inline void RunConVars()
-	{
-		if (!interfaces::Cvar)
-			return;
-
-		// No Push (tf_avoidteammates_pushaway)
-		static ConVar* tf_avoid = interfaces::Cvar->FindVar("tf_avoidteammates_pushaway");
-		if (tf_avoid)
-		{
-			int targetPush = Settings::Misc.no_push ? 0 : 1;
-			if (tf_avoid->GetInt() != targetPush)
-				tf_avoid->SetValue(targetPush);
-		}
-
-		// No Engine Sleep (engine_no_focus_sleep)
-		static ConVar* engine_sleep = interfaces::Cvar->FindVar("engine_no_focus_sleep");
-		if (engine_sleep)
-		{
-			int targetSleep = Settings::Misc.no_engine_sleep ? 0 : 50;
-			if (engine_sleep->GetInt() != targetSleep)
-				engine_sleep->SetValue(targetSleep);
-		}
-	}
+	// inline void RunConVars()
+	// {
+	// 	if (!interfaces::Cvar)
+	// 		return;
+ //
+	// 	// No Push (tf_avoidteammates_pushaway)
+	// 	static ConVar* tf_avoid = interfaces::Cvar->FindVar("tf_avoidteammates_pushaway");
+	// 	if (tf_avoid)
+	// 	{
+	// 		int targetPush = Settings::Misc.no_push ? 0 : 1;
+	// 		if (tf_avoid->GetInt() != targetPush)
+	// 			tf_avoid->SetValue(targetPush);
+	// 	}
+ //
+	// 	// No Engine Sleep (engine_no_focus_sleep)
+	// 	static ConVar* engine_sleep = interfaces::Cvar->FindVar("engine_no_focus_sleep");
+	// 	if (engine_sleep)
+	// 	{
+	// 		int targetSleep = Settings::Misc.no_engine_sleep ? 0 : 50;
+	// 		if (engine_sleep->GetInt() != targetSleep)
+	// 			engine_sleep->SetValue(targetSleep);
+	// 	}
+	// }
 
 	// Draws an on-screen alarm when an enemy spy is within spy_alarm_range.
 	inline void DrawSpyAlarm(CTFPlayer* pLocal)
