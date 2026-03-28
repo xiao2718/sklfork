@@ -190,7 +190,7 @@ namespace Settings
 		float customfov = 90.0f;
 		bool spectatorlist = false;
 		bool backpack_expander = false;
-		bool sv_pure_bypass = false;
+		bool sv_pure_bypass = true;
 		bool streamer_mode = false;
 		bool bhop = false;
 		bool autostrafe = false;

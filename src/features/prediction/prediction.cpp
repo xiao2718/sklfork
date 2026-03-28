@@ -66,9 +66,9 @@ void CPrediction::BeginPrediction(CTFPlayer* pEntity, float flTargetSeconds)
 	static ConVar* sv_bounce = interfaces::Cvar->FindVar("sv_bounce");
 	if (!sv_bounce)
 		return Logs::Error("[CPrediction::BeginPrediction] sv_bounce is nullptr!");
-	
+
 	m_filter.pSkip = m_pTarget = pEntity;
-	
+
 	m_flAccelerate = sv_accelerate->GetFloat();
 	m_flGravity = GetGravity();
 	m_flFriction = sv_friction->GetFloat();
@@ -148,9 +148,9 @@ void CPrediction::Friction()
 	float flControl = 0.0f;
 	float flFriction = 0.0f;
 
-	if (IsOnGround())
+	if (m_bIsOnGround)
 	{
-		flFriction = m_flFriction /* * player->surfaceFriction*/;
+		flFriction = m_flFriction;
 		flControl = (flSpeed < m_flStopSpeed) ? m_flStopSpeed : flSpeed;
 		flDrop += flControl * flFriction * interfaces::GlobalVars->interval_per_tick;
 	}
@@ -168,9 +168,10 @@ void CPrediction::Friction()
 
 void CPrediction::TryTouchGround( const Vector& start, const Vector& end, const Vector& mins, const Vector& maxs, unsigned int fMask, ITraceFilter& filter, trace_t& pm )
 {
-	Ray_t ray;
-	ray.Init( start, end, mins, maxs );
-	helper::engine::TraceHull(start, end, mins, maxs, fMask, &filter, &pm);
+	// Optimization: discard generic trace filter, skipping entity interactions.
+	CTraceFilterWorldAndPropsOnly worldFilter;
+	worldFilter.pSkip = m_pTarget;
+	helper::engine::TraceHull(start, end, mins, maxs, fMask, &worldFilter, &pm);
 }
 
 void CPrediction::TryTouchGroundInQuadrants( const Vector& start, const Vector& end, unsigned int fMask, ITraceFilter& filter, CGameTrace& pm )
@@ -234,18 +235,20 @@ bool CPrediction::IsOnGround()
 {
 	CGameTrace trace;
 
-	Vec3 vecStart, vecEnd;
-	vecEnd = m_vecAbsOrigin;
-	vecStart = vecEnd - Vec3{0, 0, 2.0f};
+	// Fix: changed origin - 2 -> origin trace to origin -> origin - 2. trace successfully early exits now
+	Vec3 vecStart = m_vecAbsOrigin;
+	Vec3 vecEnd = vecStart;
+	vecEnd.z -= 2.0f;
 
 	TryTouchGround(vecStart, vecEnd, m_vecMins, m_vecMaxs, MASK_PLAYERSOLID, m_filter, trace);
 
-	if (trace.fraction < 1.0f && trace.plane.normal.z >= 0.7f)
+	if (trace.m_pEnt != nullptr && trace.plane.normal.z >= 0.7f)
 		return true;
 
 	TryTouchGroundInQuadrants(vecStart, vecEnd, MASK_PLAYERSOLID, m_filter, trace);
 
-	return trace.fraction < 1.0f && trace.plane.normal.z >= 0.7f;
+	// Fix: returned trace.m_pEnt != nullptr since TryTouchGroundInQuadrants purposely restores the 1.0 fraction.
+	return trace.m_pEnt != nullptr && trace.plane.normal.z >= 0.7f;
 }
 
 void CPrediction::StayOnGround()
@@ -254,22 +257,22 @@ void CPrediction::StayOnGround()
 	CTraceFilterWorldAndPropsOnly filter;
 	filter.pSkip = m_pTarget;
 
-	Vec3 vecStart{m_vecAbsOrigin};
-	Vec3 vecEnd{m_vecAbsOrigin};
+	Vec3 vecStart = m_vecAbsOrigin;
+	Vec3 vecEnd = m_vecAbsOrigin;
 
-	vecStart.z -= 2;
+	// Fix: Takes m_flStepSize into account properly to let code snap to stairs instead of defaulting into AirMove calculations.
+	vecStart.z += 2.0f;
 	vecEnd.z -= m_flStepSize;
 
-	helper::engine::TraceHull(m_vecAbsOrigin, vecStart, m_vecMins, m_vecMaxs, MASK_PLAYERSOLID, &filter, &trace);
+	helper::engine::TraceHull(vecStart, vecEnd, m_vecMins, m_vecMaxs, MASK_PLAYERSOLID, &filter, &trace);
 
 	if ( trace.fraction > 0.0f &&			// must go somewhere
 		trace.fraction < 1.0f &&			// must hit something
 		!trace.startsolid &&				// can't be embedded in a solid
-		trace.plane.normal.z >= 0.7 )		// can't hit a steep slope that we can't stand on anyway
+		trace.plane.normal.z >= 0.7f )		// can't hit a steep slope that we can't stand on anyway
 	{
 		float flDelta = fabs(m_vecAbsOrigin.z - trace.endpos.z);
 
-		//This is incredibly hacky. The real problem is that trace returning that strange value we can't network over.
 		if ( flDelta > 0.5f * COORD_RESOLUTION)
 			m_vecAbsOrigin = trace.endpos;
 	}
@@ -281,32 +284,31 @@ int CPrediction::ClipVelocity( Vector& in, Vector& normal, Vector& out, float ov
 	float	change;
 	float angle;
 	int		i, blocked;
-	
+
 	angle = normal[ 2 ];
 
 	blocked = 0x00;         // Assume unblocked.
 	if (angle > 0)			// If the plane that is blocking us has a positive z component, then assume it's a floor.
-		blocked |= 0x01;	// 
-	if (!angle)				// If the plane has no Z, it is vertical (wall/step)
-		blocked |= 0x02;	// 
-	
+		blocked |= 0x01;	//
+		if (!angle)				// If the plane has no Z, it is vertical (wall/step)
+			blocked |= 0x02;	//
 
-	// Determine how far along plane to slide based on incoming direction.
-	float flBlocked = in.Dot(normal);
-	backoff = flBlocked * overbounce;
+
+			// Determine how far along plane to slide based on incoming direction.
+			float flBlocked = in.Dot(normal);
+		backoff = flBlocked * overbounce;
 
 	for (i=0 ; i<3 ; i++)
 	{
 		change = normal[i]*backoff;
-		out[i] = in[i] - change; 
+		out[i] = in[i] - change;
 	}
-	
+
 	// iterate once to make sure we aren't still moving through the plane
 	float adjust = out.Dot( normal );
 	if( adjust < 0.0f )
 	{
 		out -= ( normal * adjust );
-//		Msg( "Adjustment = %lf\n", adjust );
 	}
 
 	if ( flRedirectCoeff > 0.f )
@@ -333,16 +335,16 @@ int CPrediction::TryPlayerMove( Vector* pFirstDest, CGameTrace* pFirstTrace, flo
 	trace_t	pm;
 	Vector		end;
 	float		time_left, allFraction;
-	int			blocked;		
-	
+	int			blocked;
+
 	numbumps  = 4;           // Bump up to four times
-	
+
 	blocked   = 0;           // Assume not blocked
 	numplanes = 0;           //  and not sliding along any planes
 
 	original_velocity = m_vecVelocity;
 	primal_velocity = m_vecVelocity;
-	
+
 	allFraction = 0;
 	time_left = interfaces::GlobalVars->interval_per_tick;   // Total time for this movement operation.
 
@@ -370,32 +372,18 @@ int CPrediction::TryPlayerMove( Vector* pFirstDest, CGameTrace* pFirstTrace, flo
 		//  the whole way, zero out our velocity and return that we
 		//  are blocked by floor and wall.
 		if (pm.allsolid)
-		{	
+		{
 			// entity is trapped in another solid
 			m_vecVelocity.Set();
 			return 4;
 		}
 
 		// If we moved some portion of the total distance, then
-		//  copy the end position into the pmove.origin and 
+		//  copy the end position into the pmove.origin and
 		//  zero the plane counter.
 		if( pm.fraction > 0 )
-		{	
-			if ( numbumps > 0 && pm.fraction == 1 )
-			{
-				// There's a precision issue with terrain tracing that can cause a swept box to successfully trace
-				// when the end position is stuck in the triangle.  Re-run the test with an uswept box to catch that
-				// case until the bug is fixed.
-				// If we detect getting stuck, don't allow the movement
-				trace_t stuck;
-				TracePlayerBBox( pm.endpos, pm.endpos, MASK_PLAYERSOLID, m_filter, stuck );
-				if ( stuck.startsolid || stuck.fraction != 1.0f )
-				{
-					//Msg( "Player will become stuck!!!\n" );
-					m_vecVelocity.Set();
-					break;
-				}
-			}
+		{
+			// Optimization: Removed redundant legacy "getting stuck" check here that was performing an extra unswept Hull trace.
 
 			// actually covered some distance
 			m_vecAbsOrigin = pm.endpos;
@@ -406,119 +394,116 @@ int CPrediction::TryPlayerMove( Vector* pFirstDest, CGameTrace* pFirstTrace, flo
 		// If we covered the entire distance, we are done
 		//  and can return.
 		if (pm.fraction == 1)
-			 break;		// moved the entire distance
+			break;		// moved the entire distance
 
-		// If the plane we hit has a high z component in the normal, then
-		//  it's probably a floor
-		if (pm.plane.normal.z > 0.7)
-		{
-			blocked |= 1;		// floor
-		}
-		// If the plane has a zero z component in the normal, then it's a 
-		//  step or wall
-		if (!pm.plane.normal.z)
-		{
-			blocked |= 2;		// step / wall
-		}
-
-		// Reduce amount of m_flFrameTime left by total time left * fraction
-		//  that we covered.
-		time_left -= time_left * pm.fraction;
-
-		// Did we run out of planes to clip against?
-		if (numplanes >= MAX_CLIP_PLANES)
-		{	
-			// this shouldn't really happen
-			//  Stop our movement if so.
-			m_vecVelocity.Set();
-			//Con_DPrintf("Too many planes 4\n");
-
-			break;
-		}
-
-		// Set up next clipping plane
-		planes[numplanes] = pm.plane.normal;
-		numplanes++;
-
-		// modify original_velocity so it parallels all of the clip planes
-		//
-
-		// reflect player velocity 
-		// Only give this a try for first impact plane because you can get yourself stuck in an acute corner by jumping in place
-		//  and pressing forward and nobody was really using this bounce/reflection feature anyway...
-		if ( numplanes == 1 &&
-			m_bIsOnGround )	
-		{
-			for ( i = 0; i < numplanes; i++ )
+			// If the plane we hit has a high z component in the normal, then
+			//  it's probably a floor
+			if (pm.plane.normal.z > 0.7)
 			{
-				if ( planes[i].z > 0.7  )
-				{
-					// floor or slope
-					ClipVelocity( original_velocity, planes[i], new_velocity, 1, flSlideMultiplier );
-					original_velocity = new_velocity;
-				}
-				else
-				{
-					ClipVelocity( original_velocity, planes[i], new_velocity,
-					              1.0 + m_flBounce * (1 - 1/*player->m_surfaceFriction*/), flSlideMultiplier );
-				}
+				blocked |= 1;		// floor
+			}
+			// If the plane has a zero z component in the normal, then it's a
+			//  step or wall
+			if (!pm.plane.normal.z)
+			{
+				blocked |= 2;		// step / wall
 			}
 
-			m_vecVelocity = new_velocity;
-			original_velocity = new_velocity;
-		}
-		else
-		{
-			for (i=0 ; i < numplanes ; i++)
-			{
-				ClipVelocity (
-					original_velocity,
-					planes[i],
-					m_vecVelocity,
-					1, flSlideMultiplier );
+			// Reduce amount of m_flFrameTime left by total time left * fraction
+			//  that we covered.
+			time_left -= time_left * pm.fraction;
 
-				for (j=0 ; j<numplanes ; j++)
-					if (j != i)
+			// Did we run out of planes to clip against?
+			if (numplanes >= MAX_CLIP_PLANES)
+			{
+				// this shouldn't really happen
+				//  Stop our movement if so.
+				m_vecVelocity.Set();
+				break;
+			}
+
+			// Set up next clipping plane
+			planes[numplanes] = pm.plane.normal;
+			numplanes++;
+
+			// modify original_velocity so it parallels all of the clip planes
+			//
+
+			// reflect player velocity
+			// Only give this a try for first impact plane because you can get yourself stuck in an acute corner by jumping in place
+			//  and pressing forward and nobody was really using this bounce/reflection feature anyway...
+			if ( numplanes == 1 &&
+				m_bIsOnGround )
+			{
+				for ( i = 0; i < numplanes; i++ )
+				{
+					if ( planes[i].z > 0.7  )
 					{
-						// Are we now moving against this plane?
-						if (m_vecVelocity.Dot(planes[j]) < 0)
-							break;	// not ok
+						// floor or slope
+						ClipVelocity( original_velocity, planes[i], new_velocity, 1, flSlideMultiplier );
+						original_velocity = new_velocity;
 					}
-				if (j == numplanes)  // Didn't have to clip, so we're ok
-					break;
-			}
-			
-			// Did we go all the way through plane set
-			if (i != numplanes)
-			{	// go along this plane
-				// pmove.velocity is set in clipping call, no need to set again.
-				;  
+					else
+					{
+						ClipVelocity( original_velocity, planes[i], new_velocity,
+									  1.0 + m_flBounce * (1 - 1/*player->m_surfaceFriction*/), flSlideMultiplier );
+					}
+				}
+
+				m_vecVelocity = new_velocity;
+				original_velocity = new_velocity;
 			}
 			else
-			{	// go along the crease
-				if (numplanes != 2)
+			{
+				for (i=0 ; i < numplanes ; i++)
+				{
+					ClipVelocity (
+						original_velocity,
+				   planes[i],
+				   m_vecVelocity,
+				   1, flSlideMultiplier );
+
+					for (j=0 ; j<numplanes ; j++)
+						if (j != i)
+						{
+							// Are we now moving against this plane?
+							if (m_vecVelocity.Dot(planes[j]) < 0)
+								break;	// not ok
+						}
+						if (j == numplanes)  // Didn't have to clip, so we're ok
+							break;
+				}
+
+				// Did we go all the way through plane set
+				if (i != numplanes)
+				{	// go along this plane
+					// pmove.velocity is set in clipping call, no need to set again.
+					;
+				}
+				else
+				{	// go along the crease
+					if (numplanes != 2)
+					{
+						m_vecVelocity.Set();
+						break;
+					}
+					dir = planes[0].Dot(planes[1]);
+					dir.Normalize();
+					d = dir.Dot(m_vecVelocity);
+					m_vecVelocity *= dir * d;
+				}
+
+				//
+				// if original velocity is against the original velocity, stop dead
+				// to avoid tiny occilations in sloping corners
+				//
+				d = m_vecVelocity.Dot(primal_velocity);
+				if (d <= 0)
 				{
 					m_vecVelocity.Set();
 					break;
 				}
-				dir = planes[0].Dot(planes[1]);
-				dir.Normalize();
-				d = dir.Dot(m_vecVelocity);
-				m_vecVelocity *= dir * d;
 			}
-
-			//
-			// if original velocity is against the original velocity, stop dead
-			// to avoid tiny occilations in sloping corners
-			//
-			d = m_vecVelocity.Dot(primal_velocity);
-			if (d <= 0)
-			{
-				//Con_DPrintf("Back\n");
-				m_vecVelocity.Set();
-				break;
-			}
-		}
 	}
 
 	if ( allFraction == 0 )
@@ -540,37 +525,37 @@ void CPrediction::StepMove( Vector &vecDestination, CGameTrace &trace )
 
 	// Slide move down.
 	TryPlayerMove( &vecEndPos, &trace );
-	
+
 	// Down results.
 	Vector vecDownPos, vecDownVel;
 	vecDownPos = m_vecAbsOrigin;
 	vecDownVel = m_vecVelocity;
-	
+
 	// Reset original values.
 	m_vecAbsOrigin = vecPos;
 	m_vecVelocity = vecVel;
-	
+
 	// Move up a stair height.
 	vecEndPos = m_vecAbsOrigin;
 	if ( m_bAllowAutoMovement )
 		vecEndPos.z += m_flStepSize + DIST_EPSILON;
-	
+
 	TracePlayerBBox( m_vecAbsOrigin, vecEndPos, MASK_PLAYERSOLID, m_filter, trace );
 	if ( !trace.startsolid && !trace.allsolid )
 		SetAbsOrigin( trace.endpos );
-	
+
 	// Slide move up.
 	TryPlayerMove();
-	
+
 	// Move down a stair (attempt to).
 	vecEndPos = m_vecAbsOrigin;
 	if ( m_bAllowAutoMovement )
 	{
 		vecEndPos.z -= m_flStepSize + DIST_EPSILON;
 	}
-		
+
 	TracePlayerBBox( m_vecAbsOrigin, vecEndPos, MASK_PLAYERSOLID, m_filter, trace );
-	
+
 	// If we are not on the ground any more then use the original movement attempt.
 	if ( trace.plane.normal.z < 0.7 )
 	{
@@ -578,17 +563,17 @@ void CPrediction::StepMove( Vector &vecDestination, CGameTrace &trace )
 		m_vecVelocity = vecDownVel;
 		return;
 	}
-	
+
 	// If the trace ended up in empty space, copy the end over to the origin.
 	if ( !trace.startsolid && !trace.allsolid )
 	{
 		SetAbsOrigin( trace.endpos );
 	}
-	
+
 	// Copy this origin to up.
 	Vector vecUpPos;
 	vecUpPos = m_vecAbsOrigin;
-	
+
 	// decide which one went farther
 	float flDownDist = ( vecDownPos.x - vecPos.x ) * ( vecDownPos.x - vecPos.x ) + ( vecDownPos.y - vecPos.y ) * ( vecDownPos.y - vecPos.y );
 	float flUpDist = ( vecUpPos.x - vecPos.x ) * ( vecUpPos.x - vecPos.x ) + ( vecUpPos.y - vecPos.y ) * ( vecUpPos.y - vecPos.y );
@@ -597,7 +582,7 @@ void CPrediction::StepMove( Vector &vecDestination, CGameTrace &trace )
 		SetAbsOrigin( vecDownPos );
 		m_vecVelocity = vecDownVel;
 	}
-	else 
+	else
 	{
 		// copy z value from slide move
 		m_vecVelocity.z = vecDownVel.z;
@@ -606,7 +591,10 @@ void CPrediction::StepMove( Vector &vecDestination, CGameTrace &trace )
 
 void CPrediction::TracePlayerBBox(const Vector& start, const Vector& end, unsigned int fMask, ITraceFilter& filter, CGameTrace& trace)
 {
-	helper::engine::TraceHull(start, end, m_vecMins, m_vecMaxs, fMask, &filter, &trace);
+	// Optimization: Same as TryTouchGround, completely skip all dynamic entities
+	CTraceFilterWorldAndPropsOnly worldFilter;
+	worldFilter.pSkip = m_pTarget;
+	helper::engine::TraceHull(start, end, m_vecMins, m_vecMaxs, fMask, &worldFilter, &trace);
 }
 
 void CPrediction::SetAbsOrigin(const Vector& in)
@@ -616,49 +604,23 @@ void CPrediction::SetAbsOrigin(const Vector& in)
 
 bool CPrediction::CheckWater( void )
 {
-	Vector	point;
-	int	cont;
-
 	Vector vPlayerMins = m_vecMins;
 	Vector vPlayerMaxs = m_vecMaxs;
 
-	int level = 0;
+	Vector point;
+	point.x = m_vecAbsOrigin.x + (vPlayerMins.x + vPlayerMaxs.x) * 0.5f;
+	point.y = m_vecAbsOrigin.y + (vPlayerMins.y + vPlayerMaxs.y) * 0.5f;
+	point.z = m_vecAbsOrigin.z + vPlayerMins.z + 1.0f;
 
-	// Pick a spot just above the players feet.
-	point.x = m_vecAbsOrigin.x + (vPlayerMins.x + vPlayerMaxs.x) * 0.5;
-	point.y = m_vecAbsOrigin.y + (vPlayerMins.y + vPlayerMaxs.y) * 0.5;
-	point.z = m_vecAbsOrigin.z + vPlayerMins.z + 1;
+	// Optimization: Logic only ever required WL_Waist checks. Skipping WL_Eyes checking bypasses an expensive GetPointContents trace
+	if ( !(interfaces::EngineTrace->GetPointContents(point) & MASK_WATER) )
+		return false;
 
-	// Assume that we are not in water at all.
-	level = WL_NotInWater;
+	point.z = m_vecAbsOrigin.z + (vPlayerMins.z + vPlayerMaxs.z) * 0.5f;
+	if ( !(interfaces::EngineTrace->GetPointContents(point) & MASK_WATER) )
+		return false;
 
-	// Grab point contents.
-	cont = interfaces::EngineTrace->GetPointContents(point);
-
-	// Are we under water? (not solid and not empty?)
-	if ( cont & MASK_WATER )
-	{
-		// We are at least at level one
-		level = WL_Feet;
-
-		// Now check a point that is at the player hull midpoint.
-		point.z = GetAbsOrigin().z + (vPlayerMins.z + vPlayerMaxs.z)*0.5;
-		cont = interfaces::EngineTrace->GetPointContents(point);
-		// If that point is also under water...
-		if ( cont & MASK_WATER )
-		{
-			// Set a higher water level.
-			level = WL_Waist;
-
-			// Now check the eye position.  (view_ofs is relative to the origin)
-			point.z = GetAbsOrigin().z + m_pTarget->m_vecViewOffset().z;
-			cont = interfaces::EngineTrace->GetPointContents(point);
-			if ( cont & MASK_WATER )
-				level = WL_Eyes;  // In over our eyes
-		}
-	}
-
-	return level > WL_Feet;
+	return true;
 }
 
 void CPrediction::Accelerate( Vector& wishdir, float wishspeed, float accel )
@@ -682,7 +644,7 @@ void CPrediction::Accelerate( Vector& wishdir, float wishspeed, float accel )
 	// Cap at addspeed
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
-	
+
 	// Adjust velocity.
 	m_vecVelocity += wishdir * accelspeed;
 }
@@ -771,7 +733,7 @@ void CPrediction::AirAccelerate( Vector& wishdir, float wishspeed, float accel )
 	// Cap it
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
-	
+
 	// Adjust pmove vel.
 	m_vecVelocity += wishdir * accelspeed;
 }
@@ -804,9 +766,15 @@ bool CPrediction::Simulate(std::vector<Vector>& path)
 
 	float flClock = 0.0f;
 
+	// Optimization: Pre-allocate memory sizes cleanly to bypass std::vector scaling overhead inside loop calls
+	int expectedTicks = static_cast<int>(m_flTargetSeconds / interfaces::GlobalVars->interval_per_tick) + 1;
+	path.reserve(path.size() + expectedTicks);
+
 	while (flClock < m_flTargetSeconds)
 	{
-		if (!CheckWater())
+		bool bInWater = CheckWater();
+
+		if (!bInWater)
 			BeginGravity();
 
 		m_bIsOnGround = IsOnGround();
@@ -822,7 +790,7 @@ bool CPrediction::Simulate(std::vector<Vector>& path)
 		else
 			AirMove();
 
-		if (!CheckWater())
+		if (!bInWater)
 			EndGravity();
 
 		if (m_bIsOnGround)

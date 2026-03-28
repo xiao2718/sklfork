@@ -3,6 +3,7 @@
 #include "../../prediction/prediction.h"
 #include "../../logs/logs.h"
 #include <cmath>
+#include <algorithm>
 
 CAimbotProjectile::CAimbotProjectile()
 {
@@ -105,8 +106,8 @@ bool CAimbotProjectile::CheckTrajectory(CBaseEntity* pTarget, const Vector vecSt
 
 		//check if we have passed the target pos
 		Vector vecToTarget = vecTargetPos - vecPos;
-        	if (vecToTarget.Dot(vecVelocity) < 0.0f)
-            		break;
+		if (vecToTarget.Dot(vecVelocity) < 0.0f)
+			break;
 	}
 
 	return true;
@@ -115,7 +116,7 @@ bool CAimbotProjectile::CheckTrajectory(CBaseEntity* pTarget, const Vector vecSt
 bool CAimbotProjectile::GetProjectileInfo(ProjectileInfo_t& pOut, CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 {
 	if (pLocal == nullptr || pWeapon == nullptr)
-			return false;
+		return false;
 
 	bool bDucking = pLocal->GetFlags() & FL_DUCKING;
 	float flGravity = interfaces::Cvar->FindVar("sv_gravity")->GetFloat()/800;
@@ -169,7 +170,7 @@ bool CAimbotProjectile::GetProjectileInfo(ProjectileInfo_t& pOut, CTFPlayer* pLo
 		{
 			pOut.offset.Set(16, 8, -6);
 			pOut.gravity = flGravity;
-			
+
 			float charge = 0.0f;
 			float m_flChargeBeginTime = ((CTFPipebombLauncher*)pWeapon)->m_flChargeBeginTime();
 			if (m_flChargeBeginTime > flTickBase)
@@ -237,7 +238,7 @@ bool CAimbotProjectile::GetProjectileInfo(ProjectileInfo_t& pOut, CTFPlayer* pLo
 		}
 
 		case TF_WEAPON_FLAMETHROWER:
-		{	
+		{
 			static ConVar* tf_flamethrower_size = interfaces::Cvar->FindVar("tf_flamethrower_size");
 			if (!tf_flamethrower_size)
 				return false;
@@ -376,14 +377,14 @@ std::vector<PotentialTarget> CAimbotProjectile::GetBestTargets(CTFPlayer* pLocal
 void CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 {
 	Reset();
-	
+
 	if (!Settings::Aimbot.key->IsEnabled())
 		return;
 	bool bVisualsEnabled = Settings::Aimbot.path || Settings::Aimbot.indicator;
 
 	if (!bVisualsEnabled && !Settings::Aimbot.key->IsActive())
 		return;
-	
+
 	static ConVar* sv_gravity = interfaces::Cvar->FindVar("sv_gravity");
 	if (sv_gravity == nullptr)
 		return Logs::Error("[CAimbotProjectile::RunMain] sv_gravity is null!");
@@ -450,9 +451,9 @@ void CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 			Math::AngleVectors(vecAngle, &vecForward, &vecRight, &vecUp);
 
 			Vector vecSpawnPos = vecEyePos
-				+ vecForward * prjInfo.offset.x
-				+ vecRight * prjInfo.offset.y
-				+ vecUp * prjInfo.offset.z;
+			+ vecForward * prjInfo.offset.x
+			+ vecRight * prjInfo.offset.y
+			+ vecUp * prjInfo.offset.z;
 
 			if (!CheckTrajectory(target.entity, vecSpawnPos, vecAimPos, vecAngle, prjInfo, 0.0f))
 				continue;
@@ -476,9 +477,9 @@ void CAimbotProjectile::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 			Math::AngleVectors(vecAngle, &vecForward, &vecRight, &vecUp);
 
 			Vector vecSpawnPos = vecEyePos
-				+ vecForward * prjInfo.offset.x
-				+ vecRight * prjInfo.offset.y
-				+ vecUp * prjInfo.offset.z;
+			+ vecForward * prjInfo.offset.x
+			+ vecRight * prjInfo.offset.y
+			+ vecUp * prjInfo.offset.z;
 
 			if (!CheckTrajectory(target.entity, vecSpawnPos, vecAimPos, vecAngle, prjInfo, flGravity))
 				continue;
@@ -579,57 +580,80 @@ void CAimbotProjectile::RunIndicator()
 		m_vecOldIndicatorPos = m_vecAimPos;
 	}
 
-	m_vecOldIndicatorPos = m_vecOldIndicatorPos.Lerp(m_vecAimPos, interfaces::GlobalVars->frametime * 80.0f);
+	float flLerpSpeed = 25.0f;
+	switch (pWeapon->GetWeaponID())
+	{
+		case TF_WEAPON_ROCKETLAUNCHER:
+			flLerpSpeed = 15.0f;
+			break;
+		case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT:
+			flLerpSpeed = 20.0f;
+			break;
+		case TF_WEAPON_COMPOUND_BOW:
+			flLerpSpeed = 40.0f;
+			break;
+		case TF_WEAPON_PIPEBOMBLAUNCHER:
+			flLerpSpeed = 30.0f;
+			break;
+		default:
+			flLerpSpeed = 25.0f;
+			break;
+	}
+
+	float flDelta = std::clamp(interfaces::GlobalVars->frametime, 0.0f, 0.1f);
+	float flFactor = 1.0f - std::exp(-flLerpSpeed * flDelta);
+
+	m_vecOldIndicatorPos = m_vecOldIndicatorPos.Lerp(m_vecAimPos, flFactor);
 
 	Vector screenPos;
 	if (helper::engine::WorldToScreen(m_vecOldIndicatorPos, screenPos))
 	{
 		const int iSize = 5;
-	
+
 		interfaces::Surface->DrawSetColor(255, 255, 255, 255);
 
 		switch(static_cast<AimbotIndicatorStyle>(Settings::Aimbot.indicator))
 		{
-		case AimbotIndicatorStyle::NONE:
-			break;
+			case AimbotIndicatorStyle::NONE:
+				break;
 
-                case AimbotIndicatorStyle::CIRCLE:
-		{
-			interfaces::Surface->DrawOutlinedCircle((int)screenPos.x, (int)screenPos.y, iSize, 68);
-			break;
+			case AimbotIndicatorStyle::CIRCLE:
+			{
+				interfaces::Surface->DrawOutlinedCircle((int)screenPos.x, (int)screenPos.y, iSize, 68);
+				break;
+			}
+			case AimbotIndicatorStyle::SQUARE:
+			{
+				interfaces::Surface->DrawFilledRect
+				(
+					screenPos.x - iSize,
+	 screenPos.y - iSize,
+	 screenPos.x + iSize,
+	 screenPos.y + iSize
+				);
+				break;
+			}
+			case AimbotIndicatorStyle::TRIANGLE:
+			{
+				Vec2 p1, p2, p3;
+				p1 = {screenPos.x - iSize, screenPos.y + iSize};
+				p2 = {screenPos.x, screenPos.y - iSize};
+				p3 = {screenPos.x + iSize, screenPos.y + iSize};
+
+				// left point
+				interfaces::Surface->DrawLine(p1.x, p1.y, p2.x, p2.y);
+
+				// top center point
+				interfaces::Surface->DrawLine(p2.x, p2.y, p3.x, p3.y);
+
+				// right point
+				interfaces::Surface->DrawLine(p1.x, p1.y, p3.x, p3.y);
+				break;
+			}
+
+			default: break;
 		}
-                case AimbotIndicatorStyle::SQUARE:
-		{
-			interfaces::Surface->DrawFilledRect
-			(
-				screenPos.x - iSize,
-				screenPos.y - iSize,
-				screenPos.x + iSize,
-				screenPos.y + iSize
-			);
-			break;
-		}
-                case AimbotIndicatorStyle::TRIANGLE:
-		{
-			Vec2 p1, p2, p3;
-			p1 = {screenPos.x - iSize, screenPos.y + iSize};
-			p2 = {screenPos.x, screenPos.y - iSize};
-			p3 = {screenPos.x + iSize, screenPos.y + iSize};
-
-			// left point
-			interfaces::Surface->DrawLine(p1.x, p1.y, p2.x, p2.y);
-
-			// top center point
-			interfaces::Surface->DrawLine(p2.x, p2.y, p3.x, p3.y);
-
-			// right point
-			interfaces::Surface->DrawLine(p1.x, p1.y, p3.x, p3.y);
-			break;
-		}
-
-                default: break;
-                }
-        }
+	}
 }
 
 float CAimbotProjectile::GetAimDrop(float flGravity, float flTimeSeconds)
