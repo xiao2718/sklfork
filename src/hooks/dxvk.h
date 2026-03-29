@@ -17,7 +17,6 @@
 #include "../features/radar/radar.h"
 #include "../features/warp/warp.h"
 #include "../features/binds/binds.h"
-#include "../features/visuals/eyetrace/eyetrace.h"
 
 typedef struct IDirect3DDevice9 *LPDIRECT3DDEVICE9;
 
