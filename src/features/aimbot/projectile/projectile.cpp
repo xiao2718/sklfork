@@ -580,17 +580,17 @@ void CAimbotProjectile::RunIndicator()
 		m_vecOldIndicatorPos = m_vecAimPos;
 	}
 
-	float flLerpSpeed = 25.0f;
+	float flLerpSpeed = 50.0f;
 	switch (pWeapon->GetWeaponID())
 	{
 		case TF_WEAPON_ROCKETLAUNCHER:
-			flLerpSpeed = 15.0f;
+			flLerpSpeed = 25.0f;
 			break;
 		case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT:
-			flLerpSpeed = 20.0f;
+			flLerpSpeed = 40.0f;
 			break;
 		case TF_WEAPON_COMPOUND_BOW:
-			flLerpSpeed = 40.0f;
+			flLerpSpeed = 80.0f;
 			break;
 		case TF_WEAPON_PIPEBOMBLAUNCHER:
 			flLerpSpeed = 30.0f;

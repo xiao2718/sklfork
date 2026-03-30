@@ -49,7 +49,7 @@ DECLARE_VTABLE_HOOK(VGuiPaint, void, (IEngineVGui* thisptr, PaintMode_t paint))
 			Aimbot::RunPaint();
 			
 			// --- possible cause for blackscreen ---
-			Misc::DrawSpyAlarm(pLocal);
+			// Misc::DrawSpyAlarm(pLocal);
 		}
 
 		// compile time
